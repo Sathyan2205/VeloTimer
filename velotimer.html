@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VeloTimer</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0C0D0F;--surface:#13151A;--surface2:#1C1F27;--border:#272B35;--yellow:#E8FF47;--steel:#6B7389;--white:#EFF1F7;--green:#3DFF8F;--red:#FF5050;--ff:'Barlow Condensed',sans-serif;--mono:'JetBrains Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--white);font-family:var(--ff);-webkit-font-smoothing:antialiased;}
+.page{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;}
+.page.on{display:flex;}
+.logo{text-align:center;margin-bottom:40px;}
+.logo h1{font-size:52px;font-weight:800;color:var(--yellow);letter-spacing:-1px;}
+.logo p{font-size:13px;letter-spacing:0.2em;text-transform:uppercase;color:var(--steel);margin-top:6px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:20px;}
+.card h2{font-size:22px;font-weight:700;}
+label{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--steel);display:block;margin-bottom:8px;}
+select,input[type=number]{width:100%;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--white);font-family:var(--ff);font-size:18px;font-weight:600;appearance:none;cursor:pointer;transition:border-color 0.15s;}
+select:focus,input:focus{outline:none;border-color:var(--yellow);}
+select option{background:var(--surface2);}
+.status{font-size:13px;padding:10px 14px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);}
+.status.ok{color:var(--green);border-color:rgba(61,255,143,0.3);}
+.status.err{color:var(--red);border-color:rgba(255,80,80,0.3);}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;background:var(--yellow);color:#0B0C0E;font-family:var(--ff);font-size:19px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;border:none;border-radius:10px;cursor:pointer;transition:opacity 0.15s;}
+.btn:hover:not(:disabled){opacity:0.88;}
+.btn:disabled{opacity:0.3;cursor:not-allowed;}
+#pgTimer{padding:0;justify-content:flex-start;}
+.topbar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);}
+.topbar-brand{font-size:22px;font-weight:800;color:var(--yellow);}
+.ath-pill{display:flex;align-items:center;gap:10px;}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--yellow);color:#0B0C0E;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.ath-name{font-size:16px;font-weight:700;}
+.timer-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px 24px;width:100%;}
+.t-label{font-size:11px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--steel);margin-bottom:12px;}
+.t-label.running{color:var(--green);}
+.t-label.paused{color:var(--yellow);}
+.t-digits{font-family:var(--mono);font-size:clamp(60px,14vw,108px);font-weight:700;line-height:1;color:var(--white);letter-spacing:-0.02em;user-select:none;transition:color 0.15s;}
+.t-digits.running{color:var(--yellow);text-shadow:0 0 40px rgba(232,255,71,0.18);}
+.t-digits.paused{opacity:0.55;}
+.hint{width:100%;padding:10px 24px;text-align:center;font-size:12px;color:var(--steel);}
+.lap-section{width:100%;padding:0 24px 16px;}
+.lap-hdr{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--steel);padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.lap-badge{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 10px;}
+.lap-grid{display:flex;flex-wrap:wrap;gap:8px;max-height:160px;overflow-y:auto;}
+.lap-empty{font-size:13px;color:var(--steel);}
+.lap-chip{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:96px;display:flex;flex-direction:column;align-items:center;gap:4px;animation:chipIn 180ms ease both;}
+@keyframes chipIn{from{opacity:0;transform:translateY(6px) scale(0.96);}to{opacity:1;transform:none;}}
+.lap-chip:last-child{border-color:rgba(232,255,71,0.35);}
+.chip-no{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--steel);}
+.chip-time{font-family:var(--mono);font-size:17px;font-weight:700;}
+.kbd-hint{width:100%;padding:12px 24px;text-align:center;font-size:12px;color:var(--steel);border-top:1px solid var(--border);background:var(--surface);}
+.kbd-hint span{display:inline-flex;align-items:center;gap:4px;margin:0 8px;}
+kbd{display:inline-block;padding:1px 5px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;font-family:var(--mono);font-size:10px;color:var(--white);}
+.done-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px 40px;max-width:400px;width:100%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;animation:popIn 300ms cubic-bezier(0.34,1.56,0.64,1) both;}
+@keyframes popIn{from{opacity:0;transform:scale(0.9);}to{opacity:1;transform:none;}}
+.done-icon{width:64px;height:64px;border-radius:50%;border:3px solid var(--yellow);display:flex;align-items:center;justify-content:center;margin-bottom:8px;}
+.done-card h2{font-size:30px;font-weight:800;color:var(--yellow);}
+.done-card p{font-size:15px;color:var(--steel);}
+.done-meta{font-family:var(--mono);font-size:13px;color:var(--white);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;width:100%;text-align:left;white-space:pre;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: SELECT ATHLETE -->
+<div id="pgSelect" class="page on">
+  <div class="logo"><h1>VeloTimer</h1><p>Track Cycling Performance</p></div>
+  <div class="card">
+    <h2>Select Athlete</h2>
+    <div id="selStatus" class="status">Loading athletes...</div>
+    <div>
+      <label>Athlete</label>
+      <select id="selAthlete"><option value="">--</option></select>
+    </div>
+    <button class="btn" id="btnGo" disabled>Start Session</button>
+  </div>
+</div>
+
+<!-- PAGE 2: TIMER -->
+<div id="pgTimer" class="page">
+  <div class="topbar">
+    <span class="topbar-brand">VeloTimer</span>
+    <div class="ath-pill">
+      <div class="avatar" id="tAvatar">?</div>
+      <span class="ath-name" id="tName">--</span>
+    </div>
+    <span style="font-size:12px;color:var(--steel)" id="tDate">--</span>
+  </div>
+  <div class="timer-stage">
+    <div class="t-label" id="tLabel">WAITING FOR PI...</div>
+    <div class="t-digits" id="tDigits">00:00.00</div>
+    <div class="hint" id="tHint">Press Space or GPIO button to start</div>
+  </div>
+  <div class="lap-section">
+    <div class="lap-hdr">
+      <span>Lap Times</span>
+      <span class="lap-badge" id="lapBadge">0 laps</span>
+    </div>
+    <div class="lap-grid" id="lapGrid"><span class="lap-empty">No laps yet</span></div>
+  </div>
+  <div class="kbd-hint">
+    <span><kbd>Space</kbd> Pause</span>
+    <span><kbd>L</kbd> Lap</span>
+    <span><kbd>R</kbd> Reset</span>
+    <span><kbd>Q</kbd> Finish</span>
+  </div>
+</div>
+
+<!-- PAGE 3: SET NUMBER -->
+<div id="pgSet" class="page">
+  <div class="card">
+    <h2>Session Complete</h2>
+    <div id="setSummary"></div>
+    <div>
+      <label>Enter Set Number</label>
+      <input type="number" id="setNoInput" min="1" placeholder="e.g. 1"/>
+    </div>
+    <button class="btn" id="btnSetNo">Confirm & Save</button>
+  </div>
+</div>
+
+<!-- PAGE 4: DONE -->
+<div id="pgDone" class="page">
+  <div class="done-card">
+    <div class="done-icon">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <polyline points="4,14 10,21 24,7" stroke="#E8FF47" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2>Session Saved</h2>
+    <p>Data uploaded to cloud successfully.</p>
+    <div class="done-meta" id="doneMeta"></div>
+    <button class="btn" id="btnNewSession">New Session</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const API = "http://localhost:3000";
+const POLL_MS = 100;
+
+const pages = {select:pgSelect,timer:pgTimer,set:pgSet,done:pgDone};
+function show(name){
+  Object.values(pages).forEach(p=>p.classList.remove("on"));
+  pages[name].classList.add("on");
+}
+
+let athlete      = null;
+let lastLapCount = 0;
+let lastState    = null;
+let pollInterval = null;
+
+// ── Send keypress to Pi via serve.py ──────────────────────────
+function sendKey(key){
+  fetch(API+"/keypress",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({key:key})
+  }).catch(()=>{});
+}
+
+// ── Global keyboard listener — always active ───────────────────
+document.addEventListener("keydown", e => {
+  if(e.target.tagName === "INPUT") return;
+  if(e.code  === "Space"){ e.preventDefault(); sendKey("space"); }
+  if(e.key   === "l" || e.key === "L") sendKey("l");
+  if(e.key   === "r" || e.key === "R") sendKey("r");
+  if(e.key   === "q" || e.key === "Q") sendKey("q");
+});
+
+// ── Load athletes ──────────────────────────────────────────────
+async function loadAthletes(){
+  try{
+    const r    = await fetch(API+"/athletes");
+    const data = await r.json();
+    selStatus.textContent = data.length+" athletes loaded";
+    selStatus.className   = "status ok";
+    selAthlete.innerHTML  = '<option value="">-- choose --</option>';
+    data.forEach(a=>{
+      const id   = Array.isArray(a) ? a[0] : (a.Athlete_ID ?? a.id);
+      const name = Array.isArray(a) ? a[1] : (a.Athlete_Name ?? a.name);
+      const o    = document.createElement("option");
+      o.value=id; o.textContent=name; o.dataset.name=name;
+      selAthlete.appendChild(o);
+    });
+  } catch(e){
+    selStatus.textContent = "Could not reach server";
+    selStatus.className   = "status err";
+    setTimeout(loadAthletes, 3000);
+  }
+}
+
+selAthlete.addEventListener("change",()=>{
+  const o = selAthlete.options[selAthlete.selectedIndex];
+  if(!selAthlete.value){ btnGo.disabled=true; return; }
+  athlete = {id:Number(selAthlete.value), name:o.dataset.name};
+  btnGo.disabled = false;
+});
+
+btnGo.addEventListener("click",()=>{
+  if(!athlete) return;
+  fetch(API+"/athlete",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({athlete_id:athlete.id,athlete_name:athlete.name})}).catch(()=>{});
+  document.getElementById("tAvatar").textContent = athlete.name[0].toUpperCase();
+  document.getElementById("tName").textContent   = athlete.name;
+  document.getElementById("tDate").textContent   = new Date().toLocaleDateString("en-GB",
+    {weekday:"short",day:"numeric",month:"short"});
+  lastLapCount=0; lastState=null;
+  document.getElementById("lapGrid").innerHTML='<span class="lap-empty">No laps yet</span>';
+  document.getElementById("lapBadge").textContent="0 laps";
+  show("timer");
+  startPolling();
+});
+
+// ── Polling ────────────────────────────────────────────────────
+function startPolling(){
+  if(pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(poll, POLL_MS);
+}
+
+async function poll(){
+  try{
+    const r     = await fetch(API+"/state");
+    const state = await r.json();
+    renderState(state);
+  } catch(e){}
+}
+
+function fmt(ms){
+  const cs=Math.floor(ms/10),m=Math.floor(cs/6000),s=Math.floor((cs%6000)/100),c=cs%100;
+  return pad(m)+":"+pad(s)+"."+pad(c);
+}
+function pad(n){ return String(n).padStart(2,"0"); }
+
+function renderState(state){
+  if(!state) return;
+
+  document.getElementById("tDigits").textContent = fmt(state.elapsed_ms||0);
+
+  const tLabel  = document.getElementById("tLabel");
+  const tHint   = document.getElementById("tHint");
+  const tDigits = document.getElementById("tDigits");
+  const lapGrid = document.getElementById("lapGrid");
+  const lapBadge= document.getElementById("lapBadge");
+
+  // Pi pressed Q — show set number screen
+  if(state.waiting_set_no && (!lastState || !lastState.waiting_set_no)){
+    clearInterval(pollInterval);
+    buildSummary(state);
+    show("set");
+    lastState = state;
+    return;
+  }
+
+  // Pi fully finished — show done screen
+  if(state.finished && (!lastState || !lastState.finished)){
+    clearInterval(pollInterval);
+    const laps = state.laps||[];
+    let meta = "Athlete : "+(athlete?athlete.name:"--")+"\n";
+    meta    += "Total   : "+fmt(state.elapsed_ms)+"\n";
+    meta    += "Laps    : "+laps.length;
+    document.getElementById("doneMeta").textContent = meta;
+    show("done");
+    lastState = state;
+    return;
+  }
+
+  // Timer labels
+  if(state.running){
+    tLabel.textContent="RUNNING"; tLabel.className="t-label running";
+    tDigits.className="t-digits running"; tHint.textContent="";
+  } else if(state.elapsed_ms>0 && !state.waiting_set_no){
+    tLabel.textContent="PAUSED"; tLabel.className="t-label paused";
+    tDigits.className="t-digits paused"; tHint.textContent="Press Space or button to resume";
+  } else if(!state.running && state.elapsed_ms===0){
+    tLabel.textContent="WAITING FOR PI..."; tLabel.className="t-label";
+    tDigits.className="t-digits"; tHint.textContent="Press Space or GPIO button to start";
+  }
+
+  // Laps
+  const laps = state.laps||[];
+  if(laps.length!==lastLapCount){
+    if(laps.length===0){
+      lapGrid.innerHTML='<span class="lap-empty">No laps yet</span>';
+    } else {
+      if(lastLapCount===0) lapGrid.innerHTML="";
+      for(let i=lastLapCount;i<laps.length;i++){
+        const chip=document.createElement("div");
+        chip.className="lap-chip";
+        chip.innerHTML=`<span class="chip-no">Lap ${laps[i].lap_no}</span><span class="chip-time">${laps[i].lap_time}</span>`;
+        lapGrid.appendChild(chip);
+        lapGrid.scrollTop=lapGrid.scrollHeight;
+      }
+    }
+    lastLapCount=laps.length;
+    lapBadge.textContent=laps.length===1?"1 lap":laps.length+" laps";
+  }
+
+  lastState = state;
+}
+
+function buildSummary(state){
+  const laps=state.laps||[];
+  let html="";
+  laps.forEach((l,i)=>{
+    html+=`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:14px">
+      <span style="color:var(--steel)">Lap ${i+1}</span>
+      <span style="font-family:var(--mono)">${l.lap_time}</span></div>`;
+  });
+  html+=`<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:15px;font-weight:700">
+    <span style="color:var(--steel)">Total</span>
+    <span style="font-family:var(--mono)">${fmt(state.elapsed_ms)}</span></div>`;
+  document.getElementById("setSummary").innerHTML=html;
+}
+
+// ── Set number confirm ─────────────────────────────────────────
+document.getElementById("btnSetNo").addEventListener("click", async()=>{
+  const val = parseInt(document.getElementById("setNoInput").value,10);
+  if(!val||val<1){
+    document.getElementById("setNoInput").style.borderColor="var(--red)";
+    return;
+  }
+  await fetch(API+"/setno",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({set_no:val})}).catch(()=>{});
+
+  // Wait for Pi to confirm finished
+  const check = setInterval(async()=>{
+    try{
+      const r = await fetch(API+"/state");
+      const s = await r.json();
+      if(s.finished){
+        clearInterval(check);
+        let meta="Athlete : "+(athlete?athlete.name:"--")+"\n";
+        meta+="Set     : "+val+"\n";
+        meta+="Total   : "+fmt(s.elapsed_ms)+"\n";
+        meta+="Laps    : "+(s.laps||[]).length;
+        document.getElementById("doneMeta").textContent=meta;
+        show("done");
+      }
+    } catch(e){}
+  }, 300);
+});
+
+// ── New session button — resets everything ─────────────────────
+document.getElementById("btnNewSession").addEventListener("click",()=>{
+  athlete      = null;
+  lastLapCount = 0;
+  lastState    = null;
+  if(pollInterval) clearInterval(pollInterval);
+
+  // Reset dropdown
+  selAthlete.value = "";
+  btnGo.disabled   = true;
+  document.getElementById("lapGrid").innerHTML='<span class="lap-empty">No laps yet</span>';
+  document.getElementById("lapBadge").textContent="0 laps";
+  document.getElementById("tDigits").textContent="00:00.00";
+  document.getElementById("setNoInput").value="";
+
+  loadAthletes();
+  show("select");
+});
+
+// ── Init ───────────────────────────────────────────────────────
+loadAthletes();
+
+})();
+</script>
+</body>
+</html>

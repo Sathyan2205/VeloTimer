@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VeloTimer — Athlete Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0C0D0F;--surface:#13151A;--surface2:#1C1F27;--border:#272B35;
+  --yellow:#E8FF47;--steel:#6B7389;--white:#EFF1F7;--green:#3DFF8F;
+  --red:#FF5050;--blue:#5B9CF6;
+  --ff:'Inter',sans-serif;--ffh:'Barlow Condensed',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;background:var(--bg);color:var(--white);font-family:var(--ff);font-size:15px;-webkit-font-smoothing:antialiased;}
+button{cursor:pointer;font-family:inherit;}
+a{color:inherit;}
+
+/* ── AUTH PAGES ── */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(232,255,71,0.07) 0%,transparent 65%),var(--bg);}
+.auth-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;width:100%;max-width:420px;}
+.auth-logo{text-align:center;margin-bottom:28px;}
+.auth-logo h1{font-family:var(--ffh);font-size:40px;font-weight:800;color:var(--yellow);letter-spacing:-1px;}
+.auth-logo p{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--steel);margin-top:5px;}
+.auth-box h2{font-family:var(--ffh);font-size:24px;font-weight:700;margin-bottom:20px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--steel);margin-bottom:6px;}
+.field-optional{font-weight:400;text-transform:none;letter-spacing:0;color:var(--steel);font-size:11px;}
+.field input{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--white);font-family:var(--ff);font-size:15px;transition:border-color 0.15s;}
+.field input:focus{outline:none;border-color:var(--yellow);}
+.field input::placeholder{color:var(--steel);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.btn-main{width:100%;padding:14px;background:var(--yellow);color:#0B0C0E;font-family:var(--ffh);font-size:17px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;border:none;border-radius:10px;cursor:pointer;transition:opacity 0.15s;margin-top:6px;}
+.btn-main:hover{opacity:0.88;}
+.btn-main:disabled{opacity:0.35;cursor:not-allowed;}
+.auth-switch{text-align:center;margin-top:18px;font-size:13px;color:var(--steel);}
+.auth-switch a{color:var(--yellow);cursor:pointer;text-decoration:none;font-weight:600;}
+.auth-switch a:hover{text-decoration:underline;}
+.err-msg{background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:14px;display:none;}
+.ok-msg{background:rgba(61,255,143,0.1);border:1px solid rgba(61,255,143,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--green);margin-bottom:14px;display:none;}
+
+/* ── DASHBOARD ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;gap:12px;}
+.topbar-left{display:flex;align-items:center;gap:14px;min-width:0;}
+.topbar-brand{font-family:var(--ffh);font-size:22px;font-weight:800;color:var(--yellow);flex-shrink:0;}
+.topbar-nav{display:flex;gap:4px;}
+.topbar-nav-btn{padding:8px 14px;background:transparent;border:1px solid transparent;color:var(--steel);font-family:var(--ff);font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.topbar-nav-btn.active{background:var(--surface2);border-color:var(--border);color:var(--yellow);}
+.topbar-nav-btn:hover:not(.active){color:var(--white);}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.topbar-avatar{width:32px;height:32px;border-radius:50%;background:var(--yellow);color:#0B0C0E;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.btn-logout{padding:7px 14px;background:transparent;border:1px solid var(--border);color:var(--steel);font-family:var(--ff);font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.15s;}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+
+.dash-main{max-width:1100px;margin:0 auto;padding:28px 20px 60px;}
+
+/* Stats cards */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.stat-label{font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--steel);margin-bottom:6px;}
+.stat-val{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--white);line-height:1;}
+.stat-val.yellow{color:var(--yellow);}
+.stat-val.green{color:var(--green);}
+.stat-sub{font-size:10px;color:var(--steel);margin-top:4px;}
+
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.sec-title{font-family:var(--ffh);font-size:22px;font-weight:700;letter-spacing:-0.3px;}
+
+.btn-pill{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:var(--surface2);border:1px solid var(--border);color:var(--white);font-family:var(--ff);font-size:13px;font-weight:600;border-radius:20px;cursor:pointer;transition:all 0.15s;}
+.btn-pill:hover{border-color:var(--yellow);color:var(--yellow);}
+.btn-pill.primary{background:var(--yellow);color:#0B0C0E;border-color:var(--yellow);}
+.btn-pill.primary:hover{opacity:0.88;color:#0B0C0E;}
+
+/* Chart */
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:28px;}
+.chart-container{position:relative;height:240px;}
+
+/* ── PAGE TABS ── */
+.page{display:none;}
+.page.on{display:block;}
+#pgLogin.on,#pgRegister.on{display:flex;}
+
+/* ── TRAINING DATA PAGE ── */
+.date-group{margin-bottom:24px;}
+.date-heading{display:flex;align-items:center;gap:10px;padding:10px 0;margin-bottom:10px;border-bottom:2px solid var(--border);}
+.date-heading-text{font-family:var(--ffh);font-size:19px;font-weight:700;color:var(--yellow);}
+.date-heading-count{font-size:12px;color:var(--steel);background:var(--surface2);border:1px solid var(--border);padding:2px 10px;border-radius:20px;}
+
+.set-row{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;transition:border-color 0.15s;position:relative;}
+.set-row:hover{border-color:rgba(232,255,71,0.2);}
+.set-num-badge{width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--yellow);flex-shrink:0;}
+.set-info{flex:1;min-width:0;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.set-total{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--white);}
+.set-laps-count{font-size:12px;color:var(--steel);}
+.set-laps-preview{display:flex;gap:6px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--steel);}
+.set-laps-preview span{background:var(--surface2);padding:2px 7px;border-radius:5px;}
+
+.set-actions{position:relative;flex-shrink:0;}
+.btn-more{width:32px;height:32px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--steel);display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.btn-more:hover{border-color:var(--yellow);color:var(--yellow);}
+.action-menu{position:absolute;top:38px;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;min-width:140px;z-index:5;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.action-menu.open{display:block;}
+.action-item{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:13px;color:var(--white);cursor:pointer;transition:background 0.15s;}
+.action-item:hover{background:var(--surface);}
+.action-item.danger{color:var(--red);}
+.action-item.danger:hover{background:rgba(255,80,80,0.08);}
+
+.set-laps-expand{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:none;}
+.set-laps-expand.open{display:block;}
+.laps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;}
+.lap-chip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;}
+.lap-chip-no{font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--steel);margin-bottom:3px;}
+.lap-chip-time{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--white);}
+.lap-chip.best .lap-chip-time{color:var(--green);}
+.lap-chip.worst .lap-chip-time{color:var(--red);}
+
+/* Empty state */
+.empty-state{text-align:center;padding:50px 24px;color:var(--steel);}
+.empty-state svg{margin-bottom:12px;opacity:0.5;}
+.empty-state p{font-size:14px;margin-top:6px;}
+
+/* ── PROFILE PAGE ── */
+.profile-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;max-width:480px;}
+.profile-avatar-big{width:64px;height:64px;border-radius:50%;background:var(--yellow);color:#0B0C0E;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:18px;}
+.profile-name{font-family:var(--ffh);font-size:24px;font-weight:700;margin-bottom:4px;}
+.profile-username{font-size:13px;color:var(--steel);margin-bottom:24px;font-family:var(--mono);}
+.profile-field{margin-bottom:16px;}
+.profile-field label{display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--steel);margin-bottom:6px;}
+.profile-field input{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--white);font-family:var(--ff);font-size:14px;}
+.profile-field input:focus{outline:none;border-color:var(--yellow);}
+.profile-readonly{padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--steel);font-size:14px;}
+.profile-msg{font-size:13px;padding:10px 14px;border-radius:8px;margin-top:14px;display:none;}
+.profile-msg.ok{background:rgba(61,255,143,0.1);border:1px solid rgba(61,255,143,0.3);color:var(--green);display:block;}
+
+/* ── MANUAL ENTRY MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;display:none;}
+.overlay.on{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;}
+.modal-box h3{font-family:var(--ffh);font-size:22px;font-weight:700;margin-bottom:18px;}
+.lap-input-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.lap-input-row .lap-label{font-family:var(--mono);font-size:12px;color:var(--steel);width:50px;flex-shrink:0;}
+.lap-input-row input{flex:1;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:var(--mono);font-size:14px;}
+.lap-input-row input:focus{outline:none;border-color:var(--yellow);}
+.btn-remove-lap{width:30px;height:30px;border-radius:6px;background:transparent;border:1px solid var(--border);color:var(--steel);flex-shrink:0;}
+.btn-remove-lap:hover{border-color:var(--red);color:var(--red);}
+.btn-add-lap{width:100%;padding:10px;background:var(--surface2);border:1px dashed var(--border);color:var(--steel);font-size:13px;font-weight:600;border-radius:8px;margin-top:8px;margin-bottom:18px;transition:all 0.15s;}
+.btn-add-lap:hover{border-color:var(--yellow);color:var(--yellow);}
+.modal-actions{display:flex;gap:10px;margin-top:8px;}
+.modal-actions .btn-pill{flex:1;justify-content:center;padding:12px;}
+
+/* Confirm delete */
+.confirm-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:340px;width:100%;text-align:center;}
+.confirm-box h3{font-family:var(--ffh);font-size:22px;font-weight:700;margin-bottom:10px;}
+.confirm-box p{font-size:13px;color:var(--steel);margin-bottom:20px;line-height:1.6;}
+.confirm-btns{display:flex;gap:10px;}
+.btn-cancel{flex:1;padding:12px;background:transparent;border:1px solid var(--border);color:var(--steel);font-family:var(--ff);font-size:13px;font-weight:600;border-radius:8px;}
+.btn-cancel:hover{border-color:var(--yellow);color:var(--yellow);}
+.btn-confirm-del{flex:1;padding:12px;background:var(--red);border:none;color:#fff;font-family:var(--ff);font-size:13px;font-weight:700;border-radius:8px;}
+.btn-confirm-del:hover{opacity:0.85;}
+
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 640px){
+  .topbar{padding:12px 14px;flex-wrap:wrap;}
+  .topbar-nav-btn{padding:7px 10px;font-size:12px;}
+  .dash-main{padding:18px 14px 40px;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .stat-val{font-size:20px;}
+  .auth-box{padding:26px 22px;}
+  .field-row{grid-template-columns:1fr;}
+  .set-row{flex-wrap:wrap;}
+  .set-info{flex-direction:column;align-items:flex-start;gap:4px;}
+  .laps-grid{grid-template-columns:repeat(3,1fr);}
+  .sec-hdr{flex-direction:column;align-items:flex-start;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN ══════════════ -->
+<div id="pgLogin" class="page on auth-wrap">
+  <div style="width:100%;max-width:420px;">
+    <div class="auth-logo">
+      <h1>VeloTimer</h1>
+      <p>Athlete Portal</p>
+    </div>
+    <div class="auth-box">
+      <h2>Sign In</h2>
+      <div class="err-msg" id="loginErr"></div>
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="loginUsername" placeholder="your_username" autocomplete="username"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="btn-main" id="btnLogin">Sign In</button>
+      <div class="auth-switch">
+        Don't have an account? <a onclick="showPage('pgRegister')">Register here</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ REGISTER ══════════════ -->
+<div id="pgRegister" class="page auth-wrap">
+  <div style="width:100%;max-width:420px;">
+    <div class="auth-logo">
+      <h1>VeloTimer</h1>
+      <p>Athlete Portal</p>
+    </div>
+    <div class="auth-box">
+      <h2>Create Account</h2>
+      <div class="err-msg" id="regErr"></div>
+      <div class="ok-msg" id="regOk"></div>
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" id="regName" placeholder="Your full name"/>
+      </div>
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="regUsername" placeholder="letters, numbers, underscore"/>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Date of Birth</label>
+          <input type="date" id="regDob"/>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="regPass" placeholder="min. 6 characters"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Email <span class="field-optional">(optional)</span></label>
+        <input type="email" id="regEmail" placeholder="you@example.com"/>
+      </div>
+      <div class="field">
+        <label>Phone <span class="field-optional">(optional)</span></label>
+        <input type="tel" id="regPhone" placeholder="+91 XXXXX XXXXX"/>
+      </div>
+      <button class="btn-main" id="btnRegister">Create Account</button>
+      <div class="auth-switch">
+        Already have an account? <a onclick="showPage('pgLogin')">Sign in</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ DASHBOARD SHELL ══════════════ -->
+<div id="pgDash" class="page">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-brand">VeloTimer</span>
+      <div class="topbar-nav">
+        <button class="topbar-nav-btn active" onclick="switchTab('overview')" id="tabBtnOverview">Overview</button>
+        <button class="topbar-nav-btn" onclick="switchTab('training')" id="tabBtnTraining">Training Data</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-pill" onclick="switchTab('profile')" style="padding:7px 12px;">
+        <div class="topbar-avatar" id="topAvatar">?</div>
+      </button>
+      <button class="btn-logout" id="btnLogout">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="dash-main">
+
+    <!-- ═══ OVERVIEW TAB ═══ -->
+    <div id="tabOverview" class="tab-content">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Sessions</div>
+          <div class="stat-val yellow" id="statSessions">--</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Laps</div>
+          <div class="stat-val" id="statLaps">--</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Best Lap</div>
+          <div class="stat-val green" id="statBest">--</div>
+          <div class="stat-sub">seconds</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Lap</div>
+          <div class="stat-val" id="statAvg">--</div>
+          <div class="stat-sub">seconds</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Training</div>
+          <div class="stat-val" id="statTotal">--</div>
+          <div class="stat-sub">seconds</div>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="sec-hdr">
+          <div class="sec-title">Lap Time Trend</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="lapChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TRAINING DATA TAB ═══ -->
+    <div id="tabTraining" class="tab-content" style="display:none;">
+      <div class="sec-hdr">
+        <div class="sec-title">Training Data</div>
+        <button class="btn-pill primary" id="btnManualEntry">+ Add Manual Entry</button>
+      </div>
+      <div id="trainingDataWrap"></div>
+    </div>
+
+    <!-- ═══ PROFILE TAB ═══ -->
+    <div id="tabProfile" class="tab-content" style="display:none;">
+      <div class="sec-hdr">
+        <div class="sec-title">My Profile</div>
+      </div>
+      <div class="profile-card">
+        <div class="profile-avatar-big" id="profAvatar">?</div>
+        <div class="profile-name" id="profName">--</div>
+        <div class="profile-username" id="profUsername">@--</div>
+
+        <div class="profile-field">
+          <label>Date of Birth</label>
+          <div class="profile-readonly" id="profDob">--</div>
+        </div>
+        <div class="profile-field">
+          <label>Email</label>
+          <input type="email" id="profEmailInput" placeholder="you@example.com"/>
+        </div>
+        <div class="profile-field">
+          <label>Phone</label>
+          <input type="tel" id="profPhoneInput" placeholder="+91 XXXXX XXXXX"/>
+        </div>
+        <button class="btn-pill primary" id="btnSaveProfile" style="width:100%;justify-content:center;">Save Changes</button>
+        <div class="profile-msg" id="profileMsg"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ MANUAL ENTRY MODAL ══════════════ -->
+<div class="overlay" id="manualOverlay">
+  <div class="modal-box">
+    <h3>Add Manual Entry</h3>
+    <div class="err-msg" id="manualErr"></div>
+    <div class="field-row" style="margin-bottom:18px;">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="manualDate"/>
+      </div>
+      <div class="field">
+        <label>Set Number</label>
+        <input type="number" id="manualSetNo" min="1" placeholder="1"/>
+      </div>
+    </div>
+
+    <label style="display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--steel);margin-bottom:10px;">Lap Times (seconds)</label>
+    <div id="manualLapsWrap"></div>
+    <button class="btn-add-lap" id="btnAddLapRow">+ Add Lap</button>
+
+    <div class="modal-actions">
+      <button class="btn-pill" id="btnCancelManual" style="justify-content:center;">Cancel</button>
+      <button class="btn-pill primary" id="btnSaveManual">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ DELETE CONFIRM ══════════════ -->
+<div class="overlay" id="deleteOverlay">
+  <div class="confirm-box">
+    <h3>Delete Session?</h3>
+    <p>This will permanently delete all lap data for this session. This cannot be undone.</p>
+    <div class="confirm-btns">
+      <button class="btn-cancel" id="btnCancelDel">Cancel</button>
+      <button class="btn-confirm-del" id="btnConfirmDel">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const API = "http://35.200.234.247:8000";
+
+let token       = localStorage.getItem("vt_token");
+let athleteName = localStorage.getItem("vt_name");
+let username    = localStorage.getItem("vt_username");
+let dashData    = null;
+let chart       = null;
+let pendingDelete = null;
+let lapRowCount = 0;
+
+// ── Page switcher ──────────────────────────────────────────────
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+  document.getElementById(id).classList.add("on");
+}
+window.showPage = showPage;
+
+function switchTab(tab){
+  document.querySelectorAll(".tab-content").forEach(t=>t.style.display="none");
+  document.querySelectorAll(".topbar-nav-btn").forEach(b=>b.classList.remove("active"));
+
+  if(tab==="overview"){
+    document.getElementById("tabOverview").style.display="block";
+    document.getElementById("tabBtnOverview").classList.add("active");
+  } else if(tab==="training"){
+    document.getElementById("tabTraining").style.display="block";
+    document.getElementById("tabBtnTraining").classList.add("active");
+  } else if(tab==="profile"){
+    document.getElementById("tabProfile").style.display="block";
+    loadProfile();
+  }
+}
+window.switchTab = switchTab;
+
+function authHeaders(){
+  return {"Content-Type":"application/json","Authorization":"Bearer "+token};
+}
+
+function showErr(el, msg){ el.textContent=msg; el.style.display="block"; }
+function hideErr(el){ el.style.display="none"; }
+function showOk(el, msg){ el.textContent=msg; el.style.display="block"; }
+
+function fmtSec(s){
+  const ms = Math.round(s*1000);
+  const m  = Math.floor(ms/60000);
+  const sc = Math.floor((ms%60000)/1000);
+  const cs = Math.floor((ms%1000)/10);
+  return `${String(m).padStart(2,"0")}:${String(sc).padStart(2,"0")}.${String(cs).padStart(2,"0")}`;
+}
+
+function fmtDateHeading(str){
+  if(!str) return "--";
+  const d = new Date(str);
+  return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────
+document.getElementById("btnLogin").addEventListener("click", async()=>{
+  const uname = document.getElementById("loginUsername").value.trim();
+  const pass  = document.getElementById("loginPass").value;
+  const errEl = document.getElementById("loginErr");
+  hideErr(errEl);
+
+  if(!uname||!pass){ showErr(errEl,"Please enter username and password"); return; }
+
+  try{
+    const res  = await fetch(API+"/login",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username:uname,password:pass})});
+    const data = await res.json();
+    if(!res.ok){ showErr(errEl, data.detail||"Login failed"); return; }
+
+    token       = data.token;
+    athleteName = data.athlete_name;
+    username    = data.username;
+    localStorage.setItem("vt_token", token);
+    localStorage.setItem("vt_name", athleteName);
+    localStorage.setItem("vt_username", username);
+    loadDashboard();
+  } catch(e){
+    showErr(errEl,"Could not reach server. Try again.");
+  }
+});
+
+document.getElementById("loginPass").addEventListener("keydown",e=>{
+  if(e.key==="Enter") document.getElementById("btnLogin").click();
+});
+
+// ── REGISTER ───────────────────────────────────────────────────
+document.getElementById("btnRegister").addEventListener("click", async()=>{
+  const name     = document.getElementById("regName").value.trim();
+  const uname    = document.getElementById("regUsername").value.trim();
+  const email    = document.getElementById("regEmail").value.trim();
+  const phone    = document.getElementById("regPhone").value.trim();
+  const dob      = document.getElementById("regDob").value;
+  const pass     = document.getElementById("regPass").value;
+  const errEl    = document.getElementById("regErr");
+  const okEl     = document.getElementById("regOk");
+  hideErr(errEl); hideErr(okEl);
+
+  if(!name||!uname||!pass){ showErr(errEl,"Name, username and password are required"); return; }
+  if(!/^[a-zA-Z0-9_]+$/.test(uname)){ showErr(errEl,"Username can only contain letters, numbers, and underscores"); return; }
+  if(pass.length<6){ showErr(errEl,"Password must be at least 6 characters"); return; }
+
+  try{
+    const res  = await fetch(API+"/register",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name,username:uname,password:pass,dob,email,phone})});
+    const data = await res.json();
+    if(!res.ok){ showErr(errEl, data.detail||"Registration failed"); return; }
+
+    showOk(okEl,"Account created! You can now sign in.");
+    document.getElementById("regName").value="";
+    document.getElementById("regUsername").value="";
+    document.getElementById("regEmail").value="";
+    document.getElementById("regPhone").value="";
+    document.getElementById("regDob").value="";
+    document.getElementById("regPass").value="";
+    setTimeout(()=>showPage("pgLogin"),1800);
+  } catch(e){
+    showErr(errEl,"Could not reach server. Try again.");
+  }
+});
+
+// ── LOGOUT ─────────────────────────────────────────────────────
+document.getElementById("btnLogout").addEventListener("click", async()=>{
+  try{ await fetch(API+"/logout",{method:"POST",headers:authHeaders()}); } catch(e){}
+  token=null; athleteName=null; username=null;
+  localStorage.removeItem("vt_token");
+  localStorage.removeItem("vt_name");
+  localStorage.removeItem("vt_username");
+  showPage("pgLogin");
+});
+
+// ── LOAD DASHBOARD ─────────────────────────────────────────────
+async function loadDashboard(){
+  showPage("pgDash");
+  document.getElementById("topAvatar").textContent = (athleteName||"?").charAt(0).toUpperCase();
+  switchTab("overview");
+
+  try{
+    const res  = await fetch(API+"/dashboard",{headers:authHeaders()});
+    if(res.status===401){ localStorage.removeItem("vt_token"); showPage("pgLogin"); return; }
+    const data = await res.json();
+    dashData   = data;
+    renderOverview(data);
+    renderTrainingData(data);
+  } catch(e){
+    console.error("Dashboard load failed:", e);
+  }
+}
+
+// ── OVERVIEW TAB ───────────────────────────────────────────────
+function renderOverview(data){
+  const s = data.stats;
+  document.getElementById("statSessions").textContent = s.total_sessions;
+  document.getElementById("statLaps").textContent     = s.total_laps;
+  document.getElementById("statBest").textContent     = s.best_lap.toFixed(3);
+  document.getElementById("statAvg").textContent      = s.avg_lap.toFixed(3);
+  document.getElementById("statTotal").textContent    = s.total_time.toFixed(1);
+  renderChart(data.dates);
+}
+
+function renderChart(dates){
+  const sortedDates = [...dates].reverse();
+  const labels = [];
+  const values = [];
+
+  sortedDates.forEach(d=>{
+    d.sets.forEach(s=>{
+      s.laps.forEach(l=>{
+        labels.push(`S${s.set_no}L${l.lap_no}`);
+        values.push(l.lap_time);
+      });
+    });
+  });
+
+  if(chart) chart.destroy();
+  const ctx = document.getElementById("lapChart").getContext("2d");
+  chart = new Chart(ctx,{
+    type:"line",
+    data:{labels,datasets:[{
+      label:"Lap Time (s)", data: values,
+      borderColor:"#E8FF47", backgroundColor:"rgba(232,255,71,0.08)",
+      borderWidth:2, pointBackgroundColor:"#E8FF47",
+      pointRadius:3, pointHoverRadius:5, tension:0.3, fill:true
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:"#13151A",borderColor:"#272B35",borderWidth:1,
+          titleColor:"#6B7389",bodyColor:"#EFF1F7",
+          callbacks:{label:ctx=>"Lap time: "+ctx.parsed.y.toFixed(3)+"s"}}
+      },
+      scales:{
+        x:{ticks:{color:"#6B7389",font:{size:9},maxTicksLimit:8},grid:{color:"#272B35"}},
+        y:{ticks:{color:"#6B7389",callback:v=>v.toFixed(1)+"s"},grid:{color:"#272B35"}}
+      }
+    }
+  });
+}
+
+// ── TRAINING DATA TAB ──────────────────────────────────────────
+function renderTrainingData(data){
+  const wrap = document.getElementById("trainingDataWrap");
+  const dates = data.dates;
+
+  if(!dates||dates.length===0){
+    wrap.innerHTML=`<div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="#6B7389" stroke-width="2"/><path d="M24 14v10l7 5" stroke="#6B7389" stroke-width="2" stroke-linecap="round"/></svg>
+      <p>No training sessions recorded yet.</p>
+    </div>`;
+    return;
+  }
+
+  wrap.innerHTML = dates.map((d, di)=>{
+    const setsHtml = d.sets.map((s, si)=>{
+      const lapTimes = s.laps.map(l=>l.lap_time);
+      const best  = Math.min(...lapTimes);
+      const worst = Math.max(...lapTimes);
+      const previewChips = s.laps.slice(0,4).map(l=>`<span>${l.lap_time.toFixed(2)}s</span>`).join("");
+      const moreCount = s.laps.length>4 ? s.laps.length-4 : 0;
+
+      const expandLaps = s.laps.map(l=>{
+        let cls="lap-chip";
+        if(l.lap_time===best && s.laps.length>1) cls+=" best";
+        if(l.lap_time===worst && s.laps.length>1) cls+=" worst";
+        return `<div class="${cls}"><div class="lap-chip-no">Lap ${l.lap_no}</div><div class="lap-chip-time">${l.lap_time.toFixed(3)}s</div></div>`;
+      }).join("");
+
+      const rowId = `set_${di}_${si}`;
+      return `
+      <div class="set-row" id="row_${rowId}">
+        <div class="set-num-badge">${s.set_no}</div>
+        <div class="set-info" onclick="toggleSetExpand('${rowId}')" style="cursor:pointer;">
+          <span class="set-total">${fmtSec(s.total_time)}</span>
+          <span class="set-laps-count">${s.laps.length} lap${s.laps.length!==1?"s":""}</span>
+          <div class="set-laps-preview">${previewChips}${moreCount>0?`<span>+${moreCount} more</span>`:""}</div>
+        </div>
+        <div class="set-actions">
+          <button class="btn-more" onclick="toggleActionMenu('${rowId}', event)">⋮</button>
+          <div class="action-menu" id="menu_${rowId}">
+            <div class="action-item" onclick="toggleSetExpand('${rowId}');closeAllMenus();">👁 View Laps</div>
+            <div class="action-item danger" onclick="confirmDelete('${d.date}', ${s.set_no})">🗑 Delete</div>
+          </div>
+        </div>
+        <div class="set-laps-expand" id="expand_${rowId}" style="flex-basis:100%;">
+          <div class="laps-grid">${expandLaps}</div>
+        </div>
+      </div>`;
+    }).join("");
+
+    return `
+    <div class="date-group">
+      <div class="date-heading">
+        <span class="date-heading-text">${fmtDateHeading(d.date)}</span>
+        <span class="date-heading-count">${d.sets.length} set${d.sets.length!==1?"s":""}</span>
+      </div>
+      ${setsHtml}
+    </div>`;
+  }).join("");
+}
+
+window.toggleSetExpand = function(rowId){
+  document.getElementById("expand_"+rowId).classList.toggle("open");
+};
+
+window.toggleActionMenu = function(rowId, evt){
+  evt.stopPropagation();
+  const menu = document.getElementById("menu_"+rowId);
+  const isOpen = menu.classList.contains("open");
+  closeAllMenus();
+  if(!isOpen) menu.classList.add("open");
+};
+
+function closeAllMenus(){
+  document.querySelectorAll(".action-menu").forEach(m=>m.classList.remove("open"));
+}
+document.addEventListener("click", closeAllMenus);
+
+// ── DELETE ─────────────────────────────────────────────────────
+window.confirmDelete = function(date, set_no){
+  closeAllMenus();
+  pendingDelete = {date, set_no};
+  document.getElementById("deleteOverlay").classList.add("on");
+};
+
+document.getElementById("btnCancelDel").addEventListener("click",()=>{
+  document.getElementById("deleteOverlay").classList.remove("on");
+  pendingDelete = null;
+});
+
+document.getElementById("btnConfirmDel").addEventListener("click", async()=>{
+  if(!pendingDelete) return;
+  document.getElementById("deleteOverlay").classList.remove("on");
+  try{
+    const res = await fetch(API+"/session",{method:"DELETE",headers:authHeaders(),body:JSON.stringify(pendingDelete)});
+    if(res.ok){ pendingDelete=null; loadDashboard(); }
+  } catch(e){ console.error("Delete failed:", e); }
+});
+
+// ── MANUAL ENTRY MODAL ─────────────────────────────────────────
+document.getElementById("btnManualEntry").addEventListener("click",()=>{
+  document.getElementById("manualDate").value="";
+  document.getElementById("manualSetNo").value="";
+  document.getElementById("manualLapsWrap").innerHTML="";
+  hideErr(document.getElementById("manualErr"));
+  lapRowCount=0;
+  addLapRow();
+  addLapRow();
+  document.getElementById("manualOverlay").classList.add("on");
+});
+
+document.getElementById("btnCancelManual").addEventListener("click",()=>{
+  document.getElementById("manualOverlay").classList.remove("on");
+});
+
+function addLapRow(){
+  lapRowCount++;
+  const wrap = document.getElementById("manualLapsWrap");
+  const row = document.createElement("div");
+  row.className="lap-input-row";
+  row.innerHTML=`
+    <span class="lap-label">Lap ${lapRowCount}</span>
+    <input type="number" step="0.001" placeholder="e.g. 12.345" class="lap-time-input"/>
+    <button class="btn-remove-lap" onclick="this.parentElement.remove()">×</button>
+  `;
+  wrap.appendChild(row);
+}
+
+document.getElementById("btnAddLapRow").addEventListener("click", addLapRow);
+
+document.getElementById("btnSaveManual").addEventListener("click", async()=>{
+  const date   = document.getElementById("manualDate").value;
+  const setNo  = parseInt(document.getElementById("manualSetNo").value, 10);
+  const errEl  = document.getElementById("manualErr");
+  hideErr(errEl);
+
+  if(!date || !setNo || setNo<1){ showErr(errEl,"Please enter date and set number"); return; }
+
+  const inputs = document.querySelectorAll(".lap-time-input");
+  const laps = [];
+  for(const inp of inputs){
+    const val = parseFloat(inp.value);
+    if(!isNaN(val) && val>0) laps.push({lap_time: val});
+  }
+
+  if(laps.length===0){ showErr(errEl,"Please enter at least one lap time"); return; }
+
+  try{
+    const res  = await fetch(API+"/manual-entry",{method:"POST",headers:authHeaders(),
+      body:JSON.stringify({date, set_no:setNo, laps})});
+    const data = await res.json();
+    if(!res.ok){ showErr(errEl, data.detail||"Could not save entry"); return; }
+
+    document.getElementById("manualOverlay").classList.remove("on");
+    loadDashboard();
+  } catch(e){
+    showErr(errEl,"Could not reach server");
+  }
+});
+
+// ── PROFILE TAB ────────────────────────────────────────────────
+async function loadProfile(){
+  try{
+    const res  = await fetch(API+"/profile",{headers:authHeaders()});
+    const data = await res.json();
+
+    document.getElementById("profAvatar").textContent    = (data.athlete_name||"?").charAt(0).toUpperCase();
+    document.getElementById("profName").textContent      = data.athlete_name;
+    document.getElementById("profUsername").textContent  = "@"+data.username;
+    document.getElementById("profDob").textContent       = data.athlete_dob ? new Date(data.athlete_dob).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"}) : "Not set";
+    document.getElementById("profEmailInput").value      = data.email || "";
+    document.getElementById("profPhoneInput").value      = data.phone || "";
+  } catch(e){
+    console.error("Profile load failed:", e);
+  }
+}
+
+document.getElementById("btnSaveProfile").addEventListener("click", async()=>{
+  const email = document.getElementById("profEmailInput").value.trim();
+  const phone = document.getElementById("profPhoneInput").value.trim();
+  const msgEl = document.getElementById("profileMsg");
+
+  try{
+    const res = await fetch(API+"/profile",{method:"PUT",headers:authHeaders(),
+      body:JSON.stringify({email, phone})});
+    if(res.ok){
+      msgEl.textContent="Profile updated successfully";
+      msgEl.className="profile-msg ok";
+      setTimeout(()=>{msgEl.className="profile-msg";}, 3000);
+    }
+  } catch(e){
+    console.error("Profile save failed:", e);
+  }
+});
+
+// ── AUTO LOGIN IF TOKEN EXISTS ─────────────────────────────────
+if(token){
+  loadDashboard();
+} else {
+  showPage("pgLogin");
+}
+
+})();
+</script>
+</body>
+</html>
