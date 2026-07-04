@@ -117,12 +117,3 @@ This script:
 - The FastAPI app uses token-based authentication for protected routes.
 - The Pi-side script communicates with the Flask bridge over HTTP endpoints.
 
-## Future Improvements
-
-Possible enhancements include:
-
-- moving configuration to environment variables,
-- adding Docker support,
-- improving database schema management,
-- securing API credentials and CORS behavior,
-- adding test coverage for the backend endpoints.
